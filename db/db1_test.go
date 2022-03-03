@@ -6,7 +6,7 @@ import (
 )
 
 func TestNewDbHelper(t *testing.T) {
-	db := NewDbHelper("../db/test.db")
+	db := NewDbHelper("height.db")
 	//err := db.Put([]byte("test"), []byte("test2"))
 	//if err != nil {
 	//	return
