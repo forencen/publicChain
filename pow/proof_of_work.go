@@ -1,19 +1,21 @@
-package BLG
+package pow
 
 import (
 	"bytes"
 	"crypto/sha256"
 	"math/big"
+	"publicChain/block"
+	"publicChain/utils"
 )
 
 type ProofOfWork struct {
-	Block  *Block
+	Block  *block.Block
 	target *big.Int
 }
 
 const targetBit = 16
 
-func NewProofOfWork(block *Block) *ProofOfWork {
+func NewProofOfWork(block *block.Block) *ProofOfWork {
 	target := big.NewInt(1)
 	target = target.Lsh(target, 256-targetBit)
 	return &ProofOfWork{block, target}
@@ -23,14 +25,14 @@ func (pow *ProofOfWork) prepareDate(nonce int64) []byte {
 	data := bytes.Join([][]byte{
 		pow.Block.PrevBlockHash,
 		pow.Block.Data,
-		IntToBytes(pow.Block.Timestamp),
-		IntToBytes(nonce),
-		IntToBytes(pow.Block.Height),
+		utils.IntToBytes(pow.Block.Timestamp),
+		utils.IntToBytes(nonce),
+		utils.IntToBytes(pow.Block.Height),
 	}, []byte{})
 	return data
 }
 
-func (pow *ProofOfWork) run() ([]byte, int64) {
+func (pow *ProofOfWork) Run() ([]byte, int64) {
 	var nonce int64 = 0
 	var hash [32]byte
 	var hashInt big.Int

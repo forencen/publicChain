@@ -1,4 +1,4 @@
-package BLG
+package utils
 
 import (
 	"bytes"

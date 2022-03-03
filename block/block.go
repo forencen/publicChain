@@ -1,9 +1,10 @@
-package BLG
+package block
 
 import (
 	"bytes"
 	"encoding/gob"
 	"log"
+	"publicChain/pow"
 	"time"
 )
 
@@ -21,8 +22,7 @@ func NewBlock(height int64, data string, prevBlockHash []byte) *Block {
 		Height: height, Timestamp: time.Now().Unix(), PrevBlockHash: prevBlockHash,
 		Data: []byte(data), Hash: []byte{}, Nonce: 0,
 	}
-	pow := NewProofOfWork(block)
-	block.Hash, block.Nonce = pow.run()
+	block.Hash, block.Nonce = pow.NewProofOfWork(block).Run()
 	return block
 }
 

@@ -1,4 +1,4 @@
-package BLG
+package block
 
 type BlockChain struct {
 	Blocks []*Block

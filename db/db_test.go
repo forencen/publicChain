@@ -1,4 +1,4 @@
-package BLG
+package db
 
 import (
 	"fmt"

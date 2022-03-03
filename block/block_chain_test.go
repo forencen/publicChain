@@ -1,4 +1,4 @@
-package BLG
+package block
 
 import (
 	"fmt"
