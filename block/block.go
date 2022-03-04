@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"log"
-	"publicChain/pow"
 	"time"
 )
 
@@ -22,13 +21,17 @@ func NewBlock(height int64, data string, prevBlockHash []byte) *Block {
 		Height: height, Timestamp: time.Now().Unix(), PrevBlockHash: prevBlockHash,
 		Data: []byte(data), Hash: []byte{}, Nonce: 0,
 	}
-	block.Hash, block.Nonce = pow.NewProofOfWork(block).Run()
 	return block
 }
 
 func CreateGenesisBlock(data string) *Block {
 	preHash := [32]byte{}
 	return NewBlock(1, data, preHash[:])
+}
+
+func (b *Block) SetMinerInfo(h []byte, nonce int64) {
+	b.Nonce = nonce
+	b.Hash = h
 }
 
 func (b *Block) Serialize() []byte {
