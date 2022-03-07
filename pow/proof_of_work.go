@@ -46,6 +46,7 @@ func (pow *ProofOfWork) Run() ([]byte, int64) {
 		}
 		nonce++
 	}
+	pow.Block.Hash, pow.Block.Nonce = hash[:], nonce
 	return hash[:], nonce
 }
 

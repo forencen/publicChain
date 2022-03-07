@@ -1,6 +1,9 @@
 package db
 
-import "github.com/syndtr/goleveldb/leveldb"
+import (
+	"github.com/syndtr/goleveldb/leveldb"
+	"log"
+)
 
 type Database interface {
 	Close()
@@ -46,7 +49,7 @@ type DbHelper struct {
 func NewDbHelper(path string) *DbHelper {
 	db, err := leveldb.OpenFile(path, nil)
 	if err != nil {
-		return nil
+		log.Panic(err)
 	}
 	return &DbHelper{
 		db: db,

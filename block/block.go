@@ -29,11 +29,6 @@ func CreateGenesisBlock(data string) *Block {
 	return NewBlock(1, data, preHash[:])
 }
 
-func (b *Block) SetMinerInfo(h []byte, nonce int64) {
-	b.Nonce = nonce
-	b.Hash = h
-}
-
 func (b *Block) Serialize() []byte {
 	var res bytes.Buffer
 	encoder := gob.NewEncoder(&res)
