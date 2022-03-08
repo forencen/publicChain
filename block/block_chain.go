@@ -44,14 +44,20 @@ func (bc *BlockChain) AddBlockToBlockChan(block *Block) {
 	}
 }
 
-func (bc *BlockChain) PrintChain(lastHash []byte) {
-	lastBlockBytes, _ := bc.Db.Get(lastHash)
-	lastBlock := Deserialize(lastBlockBytes)
-	fmt.Printf("%x\t", lastBlock.Hash)
-	fmt.Printf("%d\t", lastBlock.Height)
-	fmt.Printf("%s\n", time.Unix(lastBlock.Timestamp, 0).Format("2006-01-02 15:04:05"))
-	if big.NewInt(0).Cmp(new(big.Int).SetBytes(lastBlock.PrevBlockHash)) == 0 {
-		return
+func (bc *BlockChain) Iterator() *ChainIterator {
+	return &ChainIterator{bc.Tip, bc.Db}
+}
+
+func (bc *BlockChain) PrintChain() {
+	iterator := bc.Iterator()
+	var block *Block
+	for {
+		block = iterator.Next()
+		fmt.Printf("%x\t", block.Hash)
+		fmt.Printf("%d\t", block.Height)
+		fmt.Printf("%s\n", time.Unix(block.Timestamp, 0).Format("2006-01-02 15:04:05"))
+		if big.NewInt(0).Cmp(new(big.Int).SetBytes(block.PrevBlockHash)) == 0 {
+			break
+		}
 	}
-	bc.PrintChain(lastBlock.PrevBlockHash)
 }
