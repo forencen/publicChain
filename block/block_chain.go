@@ -15,13 +15,16 @@ type BlockChain struct {
 
 const dbName = "block.db"
 
-func NewBlockChain() *BlockChain {
+type genBlockFun func(bc *BlockChain) *Block
+
+func NewBlockChain(gen genBlockFun) *BlockChain {
 	blockDb := db.NewDbHelper(dbName)
 	result, err := blockDb.Get([]byte("Tip"))
+	bc := &BlockChain{result, blockDb}
 	if err != nil {
-		return nil
+		bc.AddBlockInstanceToBlockChan(gen(bc))
 	}
-	return &BlockChain{result, blockDb}
+	return bc
 }
 
 func (bc *BlockChain) AddBlockInstanceToBlockChan(genBlock *Block) {
@@ -55,6 +58,7 @@ func (bc *BlockChain) PrintChain() {
 		block = iterator.Next()
 		fmt.Printf("%x\t", block.Hash)
 		fmt.Printf("%d\t", block.Height)
+		fmt.Printf("%s\t", string(block.Data))
 		fmt.Printf("%s\n", time.Unix(block.Timestamp, 0).Format("2006-01-02 15:04:05"))
 		if big.NewInt(0).Cmp(new(big.Int).SetBytes(block.PrevBlockHash)) == 0 {
 			break
