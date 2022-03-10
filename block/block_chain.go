@@ -2,7 +2,6 @@ package block
 
 import (
 	"fmt"
-	"log"
 	"math/big"
 	"publicChain/db"
 	"time"
@@ -15,23 +14,20 @@ type BlockChain struct {
 
 const dbName = "block.db"
 
-type genBlockFun func(bc *BlockChain) *Block
-
-func NewBlockChain(gen genBlockFun) *BlockChain {
+func NewBlockChain() *BlockChain {
 	blockDb := db.NewDbHelper(dbName)
-	result, err := blockDb.Get([]byte("Tip"))
-	bc := &BlockChain{result, blockDb}
-	if err != nil {
-		bc.AddBlockInstanceToBlockChan(gen(bc))
-	}
-	return bc
+	result, _ := blockDb.Get([]byte("Tip"))
+	return &BlockChain{result, blockDb}
 }
 
 func (bc *BlockChain) AddBlockInstanceToBlockChan(genBlock *Block) {
+	fmt.Printf("%x\t", genBlock.Hash)
 	bc.Tip = genBlock.Hash
-	err := bc.Db.Put(bc.Tip, genBlock.Serialize())
-	if err != nil {
-		log.Panic(err)
+	batch := bc.Db.NewBatch()
+	batch.Put(bc.Tip, genBlock.Serialize())
+	batch.Put([]byte("Tip"), bc.Tip)
+	if err := batch.Commit(); err != nil {
+		batch.Rollback()
 	}
 }
 
@@ -56,6 +52,9 @@ func (bc *BlockChain) PrintChain() {
 	var block *Block
 	for {
 		block = iterator.Next()
+		if block == nil {
+			return
+		}
 		fmt.Printf("%x\t", block.Hash)
 		fmt.Printf("%d\t", block.Height)
 		fmt.Printf("%s\t", string(block.Data))
