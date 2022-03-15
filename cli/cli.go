@@ -10,7 +10,6 @@ import (
 )
 
 type Cli struct {
-	BlockChain *block.BlockChain
 }
 
 func (c *Cli) printUsage() {
@@ -18,24 +17,30 @@ func (c *Cli) printUsage() {
 }
 
 func (c *Cli) genesisBlock2Db(data string) {
+	bc := block.BlockChainObject()
+	defer bc.Db.Close()
 	genesisBlock := block.CreateGenesisBlock(data)
 	pow.NewProofOfWork(genesisBlock).Run()
-	c.BlockChain.AddBlockInstanceToBlockChan(genesisBlock)
+	bc.AddBlockInstanceToBlockChan(genesisBlock)
 }
 
 func (c *Cli) addBlock(data string) {
-	if c.BlockChain.Tip == nil {
+	bc := block.BlockChainObject()
+	defer bc.Db.Close()
+	if bc.Tip == nil {
 		return
 	}
-	nowBlockBytes, _ := c.BlockChain.Db.Get(c.BlockChain.Tip)
+	nowBlockBytes, _ := bc.Db.Get(bc.Tip)
 	nowBlock := block.Deserialize(nowBlockBytes)
 	newBlock := block.NewBlock(nowBlock.Height+1, data, nowBlock.Hash)
 	pow.NewProofOfWork(newBlock).Run()
-	c.BlockChain.AddBlockToBlockChan(newBlock)
+	bc.AddBlockToBlockChan(newBlock)
 }
 
 func (c *Cli) printChain() {
-	c.BlockChain.PrintChain()
+	bc := block.BlockChainObject()
+	bc.PrintChain()
+	defer bc.Db.Close()
 }
 
 func (c *Cli) Run() {

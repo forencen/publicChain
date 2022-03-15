@@ -21,7 +21,9 @@ func NewBlockChain() *BlockChain {
 }
 
 func (bc *BlockChain) AddBlockInstanceToBlockChan(genBlock *Block) {
-	fmt.Printf("%x\t", genBlock.Hash)
+	if bc.Tip != nil {
+		return
+	}
 	bc.Tip = genBlock.Hash
 	batch := bc.Db.NewBatch()
 	batch.Put(bc.Tip, genBlock.Serialize())
@@ -63,4 +65,10 @@ func (bc *BlockChain) PrintChain() {
 			break
 		}
 	}
+}
+
+func BlockChainObject() *BlockChain {
+	blockDb := db.NewDbHelper(dbName)
+	result, _ := blockDb.Get([]byte("Tip"))
+	return &BlockChain{result, blockDb}
 }
