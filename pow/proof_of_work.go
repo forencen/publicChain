@@ -24,7 +24,7 @@ func NewProofOfWork(block *block.Block) *ProofOfWork {
 func (pow *ProofOfWork) prepareDate(nonce int64) []byte {
 	data := bytes.Join([][]byte{
 		pow.Block.PrevBlockHash,
-		pow.Block.Data,
+		pow.Block.HashTransactions(),
 		utils.IntToBytes(pow.Block.Timestamp),
 		utils.IntToBytes(nonce),
 		utils.IntToBytes(pow.Block.Height),

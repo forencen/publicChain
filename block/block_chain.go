@@ -59,7 +59,9 @@ func (bc *BlockChain) PrintChain() {
 		}
 		fmt.Printf("%x\t", block.Hash)
 		fmt.Printf("%d\t", block.Height)
-		fmt.Printf("%s\t", string(block.Data))
+		for _, tx := range block.Txs {
+			fmt.Printf("%x\t", tx.Hash)
+		}
 		fmt.Printf("%s\n", time.Unix(block.Timestamp, 0).Format("2006-01-02 15:04:05"))
 		if big.NewInt(0).Cmp(new(big.Int).SetBytes(block.PrevBlockHash)) == 0 {
 			break

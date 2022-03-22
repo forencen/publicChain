@@ -7,6 +7,7 @@ import (
 	"os"
 	"publicChain/block"
 	"publicChain/pow"
+	"publicChain/transaction"
 )
 
 type Cli struct {
@@ -16,15 +17,16 @@ func (c *Cli) printUsage() {
 	fmt.Println("this is usage")
 }
 
-func (c *Cli) genesisBlock2Db(data string) {
+func (c *Cli) genesisBlock2Db(address string) {
 	bc := block.BlockChainObject()
 	defer bc.Db.Close()
-	genesisBlock := block.CreateGenesisBlock(data)
+	txs := []*transaction.Transaction{transaction.NewCoinbaseTransaction(address)}
+	genesisBlock := block.CreateGenesisBlock(txs)
 	pow.NewProofOfWork(genesisBlock).Run()
 	bc.AddBlockInstanceToBlockChan(genesisBlock)
 }
 
-func (c *Cli) addBlock(data string) {
+func (c *Cli) addBlock(txs []*transaction.Transaction) {
 	bc := block.BlockChainObject()
 	defer bc.Db.Close()
 	if bc.Tip == nil {
@@ -32,7 +34,7 @@ func (c *Cli) addBlock(data string) {
 	}
 	nowBlockBytes, _ := bc.Db.Get(bc.Tip)
 	nowBlock := block.Deserialize(nowBlockBytes)
-	newBlock := block.NewBlock(nowBlock.Height+1, data, nowBlock.Hash)
+	newBlock := block.NewBlock(nowBlock.Height+1, txs, nowBlock.Hash)
 	pow.NewProofOfWork(newBlock).Run()
 	bc.AddBlockToBlockChan(newBlock)
 }
@@ -50,7 +52,7 @@ func (c *Cli) Run() {
 	createBlockChainCmd := flag.NewFlagSet("createBlockChainCmd", flag.ExitOnError)
 
 	flagAddBlockData := addBlockCmd.String("data", "xxxxxx", "区块内容")
-	flagCreateBlockChaiData := createBlockChainCmd.String("data", "Genesis data....", "创世区块")
+	flagCreateBlockChaiData := createBlockChainCmd.String("address", "", "创世区块创建者的地址")
 	if len(os.Args) <= 1 {
 		c.printUsage()
 		return
@@ -75,7 +77,8 @@ func (c *Cli) Run() {
 		os.Exit(1)
 	}
 	if addBlockCmd.Parsed() {
-		c.addBlock(*flagAddBlockData)
+		fmt.Println(*flagAddBlockData)
+		c.addBlock(nil)
 	}
 	if printChainCmd.Parsed() {
 		c.printChain()
