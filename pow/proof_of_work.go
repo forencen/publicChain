@@ -4,18 +4,22 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"math/big"
-	"publicChain/block"
 	"publicChain/utils"
 )
 
 type ProofOfWork struct {
-	Block  *block.Block
+	Block  *BlockInterface
 	target *big.Int
 }
 
 const targetBit = 16
 
-func NewProofOfWork(block *block.Block) *ProofOfWork {
+type BlockInterface interface {
+	Serialize() []byte
+	HashTransactions() []byte
+}
+
+func NewProofOfWork(block *BlockInterface) *ProofOfWork {
 	target := big.NewInt(1)
 	target = target.Lsh(target, 256-targetBit)
 	return &ProofOfWork{block, target}

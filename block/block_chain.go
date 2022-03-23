@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"publicChain/db"
+	"publicChain/transaction"
 	"time"
 )
 
@@ -14,14 +15,15 @@ type BlockChain struct {
 
 const dbName = "block.db"
 
-func NewBlockChain() *BlockChain {
-	blockDb := db.NewDbHelper(dbName)
-	result, _ := blockDb.Get([]byte("Tip"))
-	return &BlockChain{result, blockDb}
-}
-
-func (bc *BlockChain) LastBlock() {
-
+func (bc *BlockChain) LastBlock() *Block {
+	if bc.Tip == nil {
+		panic("please genesis block")
+	}
+	get, err := bc.Db.Get(bc.Tip)
+	if err != nil {
+		panic("db tip is error")
+	}
+	return Deserialize(get)
 }
 
 func (bc *BlockChain) AddBlockInstanceToBlockChan(genBlock *Block) {
@@ -73,15 +75,20 @@ func (bc *BlockChain) PrintChain() {
 	}
 }
 
+// MineNewBlock 挖掘新的区块
+func (bc *BlockChain) MineNewBlock(from []string, to []string, amount []string) {
+	if len(from) == len(to) && len(to) == len(amount) {
+		panic("from, to, amount lens must be equal")
+	}
+	var txs []*transaction.Transaction
+	// todo  完成交易对的创建
+	lastBlock := bc.LastBlock()
+	block := NewBlock(lastBlock.Height+1, txs, lastBlock.Hash)
+	bc.AddBlockToBlockChan(block)
+}
+
 func BlockChainObject() *BlockChain {
 	blockDb := db.NewDbHelper(dbName)
 	result, _ := blockDb.Get([]byte("Tip"))
 	return &BlockChain{result, blockDb}
-}
-
-// 挖掘新的区块
-func MineNewBlock(from []string, to []string, amount []string) {
-	if len(from) == len(to) && len(to) == len(amount) {
-
-	}
 }
