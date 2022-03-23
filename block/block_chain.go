@@ -20,6 +20,10 @@ func NewBlockChain() *BlockChain {
 	return &BlockChain{result, blockDb}
 }
 
+func (bc *BlockChain) LastBlock() {
+
+}
+
 func (bc *BlockChain) AddBlockInstanceToBlockChan(genBlock *Block) {
 	if bc.Tip != nil {
 		return
@@ -73,4 +77,11 @@ func BlockChainObject() *BlockChain {
 	blockDb := db.NewDbHelper(dbName)
 	result, _ := blockDb.Get([]byte("Tip"))
 	return &BlockChain{result, blockDb}
+}
+
+// 挖掘新的区块
+func MineNewBlock(from []string, to []string, amount []string) {
+	if len(from) == len(to) && len(to) == len(amount) {
+
+	}
 }
