@@ -1,11 +1,10 @@
 package block
 
 import (
-	"fmt"
 	"math/big"
 	"publicChain/db"
+	"publicChain/pow"
 	"publicChain/transaction"
-	"time"
 )
 
 type BlockChain struct {
@@ -63,12 +62,7 @@ func (bc *BlockChain) PrintChain() {
 		if block == nil {
 			return
 		}
-		fmt.Printf("%x\t", block.Hash)
-		fmt.Printf("%d\t", block.Height)
-		for _, tx := range block.Txs {
-			fmt.Printf("%x\t", tx.Hash)
-		}
-		fmt.Printf("%s\n", time.Unix(block.Timestamp, 0).Format("2006-01-02 15:04:05"))
+		block.PrintBlock()
 		if big.NewInt(0).Cmp(new(big.Int).SetBytes(block.PrevBlockHash)) == 0 {
 			break
 		}
@@ -84,6 +78,8 @@ func (bc *BlockChain) MineNewBlock(from []string, to []string, amount []string) 
 	// todo  完成交易对的创建
 	lastBlock := bc.LastBlock()
 	block := NewBlock(lastBlock.Height+1, txs, lastBlock.Hash)
+	p := pow.NewProofOfWork(block)
+	p.Run()
 	bc.AddBlockToBlockChan(block)
 }
 

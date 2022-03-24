@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
+	"fmt"
 	"log"
 	"publicChain/transaction"
+	"publicChain/utils"
 	"time"
 )
 
@@ -40,6 +42,27 @@ func (b *Block) Serialize() []byte {
 	return res.Bytes()
 }
 
+func (b *Block) SetHash(h []byte) {
+	b.Hash = h
+}
+
+func (b *Block) GetHash() []byte {
+	return b.Hash
+}
+
+func (b *Block) SetNonce(nonce int64) {
+	b.Nonce = nonce
+}
+
+func (b *Block) DataForPow() []byte {
+	return bytes.Join([][]byte{
+		b.PrevBlockHash,
+		b.HashTransactions(),
+		utils.IntToBytes(b.Timestamp),
+		utils.IntToBytes(b.Height),
+	}, []byte{})
+}
+
 // HashTransactions 提供挖矿时使用
 // 把交易hash拼接，并且生产hash
 func (b *Block) HashTransactions() []byte {
@@ -53,6 +76,19 @@ func (b *Block) HashTransactions() []byte {
 	}
 	txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
 	return txHash[:]
+}
+
+func (b *Block) PrintBlock() {
+	fmt.Println("---------------------------------------")
+	fmt.Printf("block height:%d\n", b.Height)
+	fmt.Printf("block hash:%x\n", b.Hash)
+	fmt.Printf("block pre hash:%x\n", b.PrevBlockHash)
+	fmt.Println("block txs:")
+	for _, tx := range b.Txs {
+		fmt.Println(tx)
+	}
+	fmt.Printf("%s\n", time.Unix(b.Timestamp, 0).Format("2006-01-02 15:04:05"))
+	fmt.Println("---------------------------------------")
 }
 
 func Deserialize(blockBytes []byte) *Block {

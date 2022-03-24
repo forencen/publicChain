@@ -8,18 +8,20 @@ import (
 )
 
 type ProofOfWork struct {
-	Block  *BlockInterface
+	block  BlockInterface
 	target *big.Int
 }
 
 const targetBit = 16
 
 type BlockInterface interface {
-	Serialize() []byte
-	HashTransactions() []byte
+	DataForPow() []byte
+	SetHash([]byte)
+	SetNonce(int64)
+	GetHash() []byte
 }
 
-func NewProofOfWork(block *BlockInterface) *ProofOfWork {
+func NewProofOfWork(block BlockInterface) *ProofOfWork {
 	target := big.NewInt(1)
 	target = target.Lsh(target, 256-targetBit)
 	return &ProofOfWork{block, target}
@@ -27,11 +29,8 @@ func NewProofOfWork(block *BlockInterface) *ProofOfWork {
 
 func (pow *ProofOfWork) prepareDate(nonce int64) []byte {
 	data := bytes.Join([][]byte{
-		pow.Block.PrevBlockHash,
-		pow.Block.HashTransactions(),
-		utils.IntToBytes(pow.Block.Timestamp),
+		pow.block.DataForPow(),
 		utils.IntToBytes(nonce),
-		utils.IntToBytes(pow.Block.Height),
 	}, []byte{})
 	return data
 }
@@ -50,13 +49,14 @@ func (pow *ProofOfWork) Run() ([]byte, int64) {
 		}
 		nonce++
 	}
-	pow.Block.Hash, pow.Block.Nonce = hash[:], nonce
+	pow.block.SetHash(hash[:])
+	pow.block.SetNonce(nonce)
 	return hash[:], nonce
 }
 
 func (pow *ProofOfWork) IsValida() bool {
 	var hashInt big.Int
-	hashInt.SetBytes(pow.Block.Hash)
+	hashInt.SetBytes(pow.block.GetHash())
 	if pow.target.Cmp(&hashInt) == 1 {
 		return true
 	}
