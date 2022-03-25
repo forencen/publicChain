@@ -28,8 +28,10 @@ func (c *Cli) genesisBlock2Db(address string) {
 	bc.AddBlockInstanceToBlockChan(genesisBlock)
 }
 
-func send(from []string, to []string, amount []string) {
-
+func (c *Cli) send(from []string, to []string, amount []string) {
+	bc := block.BlockChainObject()
+	defer bc.Db.Close()
+	bc.MineNewBlock(from, to, amount)
 }
 
 func (c *Cli) addBlock(txs []*transaction.Transaction) {
@@ -104,8 +106,9 @@ func (c *Cli) Run() {
 		c.genesisBlock2Db(*flagCreateBlockChaiData)
 	}
 	if sendCmd.Parsed() {
-		fmt.Println(utils.Json2StrArray(*flagFrom))
-		fmt.Println(utils.Json2StrArray(*flagTo))
-		fmt.Println(utils.Json2StrArray(*flagAmount))
+		//fmt.Println(utils.Json2StrArray(*flagFrom))
+		//fmt.Println(utils.Json2StrArray(*flagTo))
+		//fmt.Println(utils.Json2StrArray(*flagAmount))
+		c.send(utils.Json2StrArray(*flagFrom), utils.Json2StrArray(*flagTo), utils.Json2StrArray(*flagAmount))
 	}
 }

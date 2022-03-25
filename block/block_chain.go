@@ -14,6 +14,12 @@ type BlockChain struct {
 
 const dbName = "block.db"
 
+func BlockChainObject() *BlockChain {
+	blockDb := db.NewDbHelper(dbName)
+	result, _ := blockDb.Get([]byte("Tip"))
+	return &BlockChain{result, blockDb}
+}
+
 func (bc *BlockChain) LastBlock() *Block {
 	if bc.Tip == nil {
 		panic("please genesis block")
@@ -71,9 +77,6 @@ func (bc *BlockChain) PrintChain() {
 
 // MineNewBlock 挖掘新的区块
 func (bc *BlockChain) MineNewBlock(from []string, to []string, amount []string) {
-	if len(from) == len(to) && len(to) == len(amount) {
-		panic("from, to, amount lens must be equal")
-	}
 	var txs []*transaction.Transaction
 	// todo  完成交易对的创建
 	lastBlock := bc.LastBlock()
@@ -81,10 +84,4 @@ func (bc *BlockChain) MineNewBlock(from []string, to []string, amount []string) 
 	p := pow.NewProofOfWork(block)
 	p.Run()
 	bc.AddBlockToBlockChan(block)
-}
-
-func BlockChainObject() *BlockChain {
-	blockDb := db.NewDbHelper(dbName)
-	result, _ := blockDb.Get([]byte("Tip"))
-	return &BlockChain{result, blockDb}
 }

@@ -30,7 +30,10 @@ func NewBlock(height int64, txs []*transaction.Transaction, prevBlockHash []byte
 
 func CreateGenesisBlock(txs []*transaction.Transaction) *Block {
 	preHash := [32]byte{}
-	return NewBlock(1, txs, preHash[:])
+	return &Block{
+		Height: 1, Timestamp: time.Now().Unix(), PrevBlockHash: preHash[:],
+		Txs: txs, Hash: []byte{}, Nonce: 0,
+	}
 }
 
 func (b *Block) Serialize() []byte {
