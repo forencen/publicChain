@@ -75,6 +75,86 @@ func (bc *BlockChain) PrintChain() {
 	}
 }
 
+func (bc *BlockChain) GetUnUseUtxo(address string) []*transaction.Utxo {
+	iterator := bc.Iterator()
+	var block *Block
+	var utxoTemp *transaction.Utxo
+	utxoMapping := make(map[string]*transaction.Utxo)
+	for {
+		block = iterator.Next()
+		if block == nil {
+			break
+		}
+		for _, tx := range block.Txs {
+
+			for _, vin := range tx.Vins {
+				if vin.UnLockWithAddress(address) {
+					utxoTemp = transaction.NewUtxo(vin.TxHash, vin.Vout, 0, address, true)
+					utxoMapping[utxoTemp.Index()] = utxoTemp
+				}
+			}
+			for i, vout := range tx.Vouts {
+				if vout.UnLockWithAddress(address) {
+					utxoTemp = transaction.NewUtxo(tx.Hash, i, vout.Value, address, false)
+					if mappingItem, ok := utxoMapping[utxoTemp.Index()]; ok {
+						mappingItem.Value = vout.Value
+					} else {
+						utxoMapping[utxoTemp.Index()] = utxoTemp
+					}
+
+				}
+
+			}
+		}
+
+	}
+	utxoList := make([]*transaction.Utxo)
+	utxoMapping
+	return
+}
+
+func (bc *BlockChain) GetBalance(address string) int64 {
+	iterator := bc.Iterator()
+	var block *Block
+	var utxoTemp *transaction.Utxo
+	utxoMapping := make(map[string]*transaction.Utxo)
+	for {
+		block = iterator.Next()
+		if block == nil {
+			break
+		}
+		for _, tx := range block.Txs {
+
+			for _, vin := range tx.Vins {
+				if vin.UnLockWithAddress(address) {
+					utxoTemp = transaction.NewUtxo(vin.TxHash, vin.Vout, 0, address, true)
+					utxoMapping[utxoTemp.Index()] = utxoTemp
+				}
+			}
+			for i, vout := range tx.Vouts {
+				if vout.UnLockWithAddress(address) {
+					utxoTemp = transaction.NewUtxo(tx.Hash, i, vout.Value, address, false)
+					if mappingItem, ok := utxoMapping[utxoTemp.Index()]; ok {
+						mappingItem.Value = vout.Value
+					} else {
+						utxoMapping[utxoTemp.Index()] = utxoTemp
+					}
+
+				}
+
+			}
+		}
+
+	}
+	amount := int64(0)
+	for _, value := range utxoMapping {
+		if !value.IsUsed {
+			amount += value.Value
+		}
+	}
+	return amount
+}
+
 // MineNewBlock 挖掘新的区块
 func (bc *BlockChain) MineNewBlock(from []string, to []string, amount []string) {
 	var txs []*transaction.Transaction

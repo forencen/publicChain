@@ -53,19 +53,34 @@ func (c *Cli) printChain() {
 	defer bc.Db.Close()
 }
 
+func (c *Cli) getBalance(address string) {
+	bc := block.BlockChainObject()
+	defer bc.Db.Close()
+	utxo := bc.GetBalance(address)
+	amount := 0
+	for _, item := range utxo {
+		amount += item.amount
+	}
+	fmt.Printf("%s balance: %d", address, amount)
+}
+
 func (c *Cli) Run() {
 
-	addBlockCmd := flag.NewFlagSet("addBlock", flag.ExitOnError)
-	sendCmd := flag.NewFlagSet("send", flag.ExitOnError)
 	printChainCmd := flag.NewFlagSet("printChain", flag.ExitOnError)
-	createBlockChainCmd := flag.NewFlagSet("createBlockChainCmd", flag.ExitOnError)
 
-	flagAddBlockData := addBlockCmd.String("data", "xxxxxx", "区块内容")
+	createBlockChainCmd := flag.NewFlagSet("createBlockChainCmd", flag.ExitOnError)
 	flagCreateBlockChaiData := createBlockChainCmd.String("address", "", "创世区块创建者的地址")
 
+	addBlockCmd := flag.NewFlagSet("addBlock", flag.ExitOnError)
+	flagAddBlockData := addBlockCmd.String("data", "xxxxxx", "区块内容")
+
+	sendCmd := flag.NewFlagSet("send", flag.ExitOnError)
 	flagFrom := sendCmd.String("from", "", "给钱")
 	flagTo := sendCmd.String("to", "", "收钱")
 	flagAmount := sendCmd.String("amount", "", "钱")
+
+	getBalanceCmd := flag.NewFlagSet("getBalance", flag.ExitOnError)
+	balanceAddress := getBalanceCmd.String("address", "xxxxxx", "查询地址")
 
 	if len(os.Args) <= 1 {
 		c.printUsage()
@@ -91,6 +106,10 @@ func (c *Cli) Run() {
 		if err := createBlockChainCmd.Parse(os.Args[2:]); err != nil {
 			log.Panic(err)
 		}
+	case "getBalance":
+		if err := getBalanceCmd.Parse(os.Args[2:]); err != nil {
+			log.Panic(err)
+		}
 	default:
 		c.printUsage()
 		os.Exit(1)
@@ -110,5 +129,8 @@ func (c *Cli) Run() {
 		//fmt.Println(utils.Json2StrArray(*flagTo))
 		//fmt.Println(utils.Json2StrArray(*flagAmount))
 		c.send(utils.Json2StrArray(*flagFrom), utils.Json2StrArray(*flagTo), utils.Json2StrArray(*flagAmount))
+	}
+	if getBalanceCmd.Parsed() {
+		c.getBalance(*balanceAddress)
 	}
 }
