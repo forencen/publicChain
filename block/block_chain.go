@@ -44,6 +44,10 @@ func (bc *BlockChain) AddBlockInstanceToBlockChan(genBlock *Block) {
 	}
 }
 
+func (bc *BlockChain) GetFromAddressUtxo(from string) {
+
+}
+
 func (bc *BlockChain) AddBlockToBlockChan(block *Block) {
 	putErr := bc.Db.Put(block.Hash, block.Serialize())
 	if putErr != nil {
@@ -75,6 +79,7 @@ func (bc *BlockChain) PrintChain() {
 	}
 }
 
+// GetUnUseUtxo 获取地址所有的UTXO
 func (bc *BlockChain) GetUnUseUtxo(address string) []*transaction.Utxo {
 	iterator := bc.Iterator()
 	var block *Block
@@ -101,58 +106,25 @@ func (bc *BlockChain) GetUnUseUtxo(address string) []*transaction.Utxo {
 					} else {
 						utxoMapping[utxoTemp.Index()] = utxoTemp
 					}
-
 				}
-
 			}
 		}
 
 	}
-	utxoList := make([]*transaction.Utxo)
-	utxoMapping
-	return
+	utxoList := make([]*transaction.Utxo, len(utxoMapping), len(utxoMapping))
+	for _, value := range utxoMapping {
+		utxoList = append(utxoList, value)
+	}
+	return utxoList
 }
 
 func (bc *BlockChain) GetBalance(address string) int64 {
-	iterator := bc.Iterator()
-	var block *Block
-	var utxoTemp *transaction.Utxo
-	utxoMapping := make(map[string]*transaction.Utxo)
-	for {
-		block = iterator.Next()
-		if block == nil {
-			break
-		}
-		for _, tx := range block.Txs {
-
-			for _, vin := range tx.Vins {
-				if vin.UnLockWithAddress(address) {
-					utxoTemp = transaction.NewUtxo(vin.TxHash, vin.Vout, 0, address, true)
-					utxoMapping[utxoTemp.Index()] = utxoTemp
-				}
-			}
-			for i, vout := range tx.Vouts {
-				if vout.UnLockWithAddress(address) {
-					utxoTemp = transaction.NewUtxo(tx.Hash, i, vout.Value, address, false)
-					if mappingItem, ok := utxoMapping[utxoTemp.Index()]; ok {
-						mappingItem.Value = vout.Value
-					} else {
-						utxoMapping[utxoTemp.Index()] = utxoTemp
-					}
-
-				}
-
-			}
-		}
-
+	utxos := bc.GetUnUseUtxo(address)
+	var sumAmount int64
+	for _, utxo := range utxos {
+		sumAmount += utxo.Value
 	}
-	amount := int64(0)
-	for _, value := range utxoMapping {
-		if !value.IsUsed {
-			amount += value.Value
-		}
-	}
-	return amount
+	return sumAmount
 }
 
 // MineNewBlock 挖掘新的区块

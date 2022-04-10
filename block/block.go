@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"log"
+	"publicChain/pow"
 	"publicChain/transaction"
 	"publicChain/utils"
 	"time"
@@ -25,15 +26,18 @@ func NewBlock(height int64, txs []*transaction.Transaction, prevBlockHash []byte
 		Height: height, Timestamp: time.Now().Unix(), PrevBlockHash: prevBlockHash,
 		Txs: txs, Hash: []byte{}, Nonce: 0,
 	}
+	pow.NewProofOfWork(block).Run()
 	return block
 }
 
 func CreateGenesisBlock(txs []*transaction.Transaction) *Block {
 	preHash := [32]byte{}
-	return &Block{
+	genesisBlock := &Block{
 		Height: 1, Timestamp: time.Now().Unix(), PrevBlockHash: preHash[:],
 		Txs: txs, Hash: []byte{}, Nonce: 0,
 	}
+	pow.NewProofOfWork(genesisBlock).Run()
+	return genesisBlock
 }
 
 func (b *Block) Serialize() []byte {

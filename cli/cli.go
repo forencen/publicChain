@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"publicChain/block"
-	"publicChain/pow"
 	"publicChain/transaction"
 	"publicChain/utils"
 )
@@ -24,7 +23,6 @@ func (c *Cli) genesisBlock2Db(address string) {
 	defer bc.Db.Close()
 	txs := []*transaction.Transaction{transaction.NewCoinbaseTransaction(address)}
 	genesisBlock := block.CreateGenesisBlock(txs)
-	pow.NewProofOfWork(genesisBlock).Run()
 	bc.AddBlockInstanceToBlockChan(genesisBlock)
 }
 
@@ -43,7 +41,6 @@ func (c *Cli) addBlock(txs []*transaction.Transaction) {
 	nowBlockBytes, _ := bc.Db.Get(bc.Tip)
 	nowBlock := block.Deserialize(nowBlockBytes)
 	newBlock := block.NewBlock(nowBlock.Height+1, txs, nowBlock.Hash)
-	pow.NewProofOfWork(newBlock).Run()
 	bc.AddBlockToBlockChan(newBlock)
 }
 
@@ -56,11 +53,7 @@ func (c *Cli) printChain() {
 func (c *Cli) getBalance(address string) {
 	bc := block.BlockChainObject()
 	defer bc.Db.Close()
-	utxo := bc.GetBalance(address)
-	amount := 0
-	for _, item := range utxo {
-		amount += item.amount
-	}
+	amount := bc.GetBalance(address)
 	fmt.Printf("%s balance: %d", address, amount)
 }
 
