@@ -118,7 +118,7 @@ func (bc *BlockChain) GetBalance(address string) int64 {
 	return sumAmount
 }
 
-func (bc *BlockChain) FindAddressEnoughUtxos(address string, amount int64) []*transaction.Utxo {
+func (bc *BlockChain) FindAddressEnoughUtxos(address string, amount int64) ([]*transaction.Utxo, bool) {
 	iterator := bc.Iterator()
 	var block *Block
 	var usedKeySet = make(map[string]struct{})
@@ -153,11 +153,14 @@ enough:
 		}
 
 	}
-	return utxoList
+	return utxoList, nowAmount >= amount
 }
 func (bc *BlockChain) NewSimpleTransaction(from string, to string, amount string) *transaction.Transaction {
 	needAmount, _ := strconv.ParseInt(amount, 10, 64)
-	needUtxos := bc.FindAddressEnoughUtxos(from, needAmount)
+	needUtxos, isEnough := bc.FindAddressEnoughUtxos(from, needAmount)
+	if !isEnough {
+		return nil
+	}
 	var vins []*transaction.TxInput
 	var canUseAmount int64
 	for _, utxo := range needUtxos {
@@ -182,7 +185,10 @@ func (bc *BlockChain) MineNewBlock(from []string, to []string, amount []string) 
 		return
 	}
 	for index := range from {
-		txs = append(txs, bc.NewSimpleTransaction(from[index], to[index], amount[index]))
+		tempTx := bc.NewSimpleTransaction(from[index], to[index], amount[index])
+		if tempTx != nil {
+			txs = append(txs, tempTx)
+		}
 	}
 	lastBlock := bc.LastBlock()
 	block := NewBlock(lastBlock.Height+1, txs, lastBlock.Hash)
