@@ -7,15 +7,10 @@ type Utxo struct {
 	Vout      int
 	Value     int64
 	ScriptSig string
-	IsUsed    bool
 }
 
-func NewUtxo(hash []byte, vout int, value int64, scriptSig string, isUsed bool) *Utxo {
-	return &Utxo{hash, vout, value, scriptSig, isUsed}
-}
-
-func (utxo *Utxo) Used() {
-	utxo.IsUsed = true
+func NewUtxo(hash []byte, vout int, value int64, scriptSig string) *Utxo {
+	return &Utxo{hash, vout, value, scriptSig}
 }
 
 func (utxo *Utxo) Index() string {

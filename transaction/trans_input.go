@@ -8,6 +8,10 @@ type TxInput struct {
 	ScriptSig string
 }
 
+func NewTxInputFromUtxo(utxo *Utxo) *TxInput {
+	return &TxInput{utxo.TxHash, utxo.Vout, utxo.ScriptSig}
+}
+
 func (vin *TxInput) UnLockWithAddress(address string) bool {
 	return vin.ScriptSig == address
 }

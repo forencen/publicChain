@@ -7,5 +7,5 @@ import "publicChain/block"
 func (c *Cli) send(from []string, to []string, amount []string) {
 	bc := block.BlockChainObject()
 	defer bc.Db.Close()
-	bc.MineNewBlock(from[0], to[0], amount[0])
+	bc.MineNewBlock(from, to, amount)
 }

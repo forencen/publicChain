@@ -5,6 +5,7 @@ import (
 	"publicChain/db"
 	"publicChain/pow"
 	"publicChain/transaction"
+	"strconv"
 )
 
 type BlockChain struct {
@@ -44,10 +45,6 @@ func (bc *BlockChain) AddBlockInstanceToBlockChan(genBlock *Block) {
 	}
 }
 
-func (bc *BlockChain) GetFromAddressUtxo(from string) {
-
-}
-
 func (bc *BlockChain) AddBlockToBlockChan(block *Block) {
 	putErr := bc.Db.Put(block.Hash, block.Serialize())
 	if putErr != nil {
@@ -83,37 +80,31 @@ func (bc *BlockChain) PrintChain() {
 func (bc *BlockChain) GetUnUseUtxo(address string) []*transaction.Utxo {
 	iterator := bc.Iterator()
 	var block *Block
-	var utxoTemp *transaction.Utxo
-	utxoMapping := make(map[string]*transaction.Utxo)
+	var usedKeySet = make(map[string]struct{})
+	utxoList := make([]*transaction.Utxo, 0, 10)
 	for {
 		block = iterator.Next()
 		if block == nil {
 			break
 		}
-		for _, tx := range block.Txs {
-
-			for _, vin := range tx.Vins {
+		for i := len(block.Txs) - 1; i >= 0; i-- {
+			for _, vin := range block.Txs[i].Vins {
 				if vin.UnLockWithAddress(address) {
-					utxoTemp = transaction.NewUtxo(vin.TxHash, vin.Vout, 0, address, true)
-					utxoMapping[utxoTemp.Index()] = utxoTemp
+					usedKeySet[string(vin.TxHash)+strconv.Itoa(vin.Vout)] = struct{}{}
 				}
 			}
-			for i, vout := range tx.Vouts {
+
+			for index, vout := range block.Txs[i].Vouts {
 				if vout.UnLockWithAddress(address) {
-					utxoTemp = transaction.NewUtxo(tx.Hash, i, vout.Value, address, false)
-					if mappingItem, ok := utxoMapping[utxoTemp.Index()]; ok {
-						mappingItem.Value = vout.Value
-					} else {
-						utxoMapping[utxoTemp.Index()] = utxoTemp
+					k := string(block.Txs[i].Hash) + strconv.Itoa(index)
+					if _, ok := usedKeySet[k]; ok {
+						continue
 					}
+					utxoList = append(utxoList, transaction.NewUtxo(block.Txs[i].Hash, i, vout.Value, address))
 				}
 			}
 		}
 
-	}
-	utxoList := make([]*transaction.Utxo, 0, len(utxoMapping))
-	for _, value := range utxoMapping {
-		utxoList = append(utxoList, value)
 	}
 	return utxoList
 }
@@ -122,17 +113,77 @@ func (bc *BlockChain) GetBalance(address string) int64 {
 	utxos := bc.GetUnUseUtxo(address)
 	var sumAmount int64
 	for _, utxo := range utxos {
-		if !utxo.IsUsed {
-			sumAmount += utxo.Value
-		}
+		sumAmount += utxo.Value
 	}
 	return sumAmount
 }
 
+func (bc *BlockChain) FindAddressEnoughUtxos(address string, amount int64) []*transaction.Utxo {
+	iterator := bc.Iterator()
+	var block *Block
+	var usedKeySet = make(map[string]struct{})
+	utxoList := make([]*transaction.Utxo, 0, 10)
+	var nowAmount int64
+enough:
+	for {
+		block = iterator.Next()
+		if block == nil {
+			break
+		}
+		for i := len(block.Txs) - 1; i >= 0; i-- {
+			for _, vin := range block.Txs[i].Vins {
+				if vin.UnLockWithAddress(address) {
+					usedKeySet[string(vin.TxHash)+strconv.Itoa(vin.Vout)] = struct{}{}
+				}
+			}
+
+			for index, vout := range block.Txs[i].Vouts {
+				if vout.UnLockWithAddress(address) {
+					k := string(block.Txs[i].Hash) + strconv.Itoa(index)
+					if _, ok := usedKeySet[k]; ok {
+						continue
+					}
+					utxoList = append(utxoList, transaction.NewUtxo(block.Txs[i].Hash, i, vout.Value, address))
+					nowAmount += vout.Value
+					if nowAmount >= amount {
+						break enough
+					}
+				}
+			}
+		}
+
+	}
+	return utxoList
+}
+func (bc *BlockChain) NewSimpleTransaction(from string, to string, amount string) *transaction.Transaction {
+	needAmount, _ := strconv.ParseInt(amount, 10, 64)
+	needUtxos := bc.FindAddressEnoughUtxos(from, needAmount)
+	var vins []*transaction.TxInput
+	var canUseAmount int64
+	for _, utxo := range needUtxos {
+		canUseAmount += utxo.Value
+		vins = append(vins, &transaction.TxInput{TxHash: utxo.TxHash, Vout: utxo.Vout, ScriptSig: utxo.ScriptSig})
+	}
+	var vouts []*transaction.TxOutput
+	vouts = append(vouts, &transaction.TxOutput{ScriptSig: to, Value: needAmount})
+	if canUseAmount > needAmount {
+		vouts = append(vouts, &transaction.TxOutput{ScriptSig: from, Value: canUseAmount - needAmount})
+	}
+	tran := &transaction.Transaction{Vins: vins, Vouts: vouts}
+	tran.SetTxHash()
+	return tran
+}
+
 // MineNewBlock 挖掘新的区块
-func (bc *BlockChain) MineNewBlock(from string, to string, amount string) {
+// 多对多的转账情况还未实现
+func (bc *BlockChain) MineNewBlock(from []string, to []string, amount []string) {
 	var txs []*transaction.Transaction
-	// todo  完成交易对的创建
+	if !(len(from) == len(to) && len(to) == len(amount)) {
+		return
+	}
+	for index := range from {
+		txs = append(txs, bc.NewSimpleTransaction(from[index], to[index], amount[index]))
+	}
 	lastBlock := bc.LastBlock()
 	block := NewBlock(lastBlock.Height+1, txs, lastBlock.Hash)
 	p := pow.NewProofOfWork(block)
