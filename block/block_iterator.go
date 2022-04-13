@@ -12,6 +12,9 @@ func (it *ChainIterator) Next() *Block {
 		return nil
 	}
 	cursorBlockBytes, _ := it.db.Get(it.Cursor)
+	if cursorBlockBytes == nil {
+		return nil
+	}
 	cursorBlock := Deserialize(cursorBlockBytes)
 	it.Cursor = cursorBlock.PrevBlockHash
 	return cursorBlock

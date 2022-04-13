@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"publicChain/block"
-	"publicChain/transaction"
 	"publicChain/utils"
 )
 
@@ -15,46 +13,6 @@ type Cli struct {
 
 func (c *Cli) printUsage() {
 	fmt.Println("this is usage")
-}
-
-// 创建创世区块
-func (c *Cli) genesisBlock2Db(address string) {
-	bc := block.BlockChainObject()
-	defer bc.Db.Close()
-	txs := []*transaction.Transaction{transaction.NewCoinbaseTransaction(address)}
-	genesisBlock := block.CreateGenesisBlock(txs)
-	bc.AddBlockInstanceToBlockChan(genesisBlock)
-}
-
-func (c *Cli) send(from []string, to []string, amount []string) {
-	bc := block.BlockChainObject()
-	defer bc.Db.Close()
-	bc.MineNewBlock(from, to, amount)
-}
-
-func (c *Cli) addBlock(txs []*transaction.Transaction) {
-	bc := block.BlockChainObject()
-	defer bc.Db.Close()
-	if bc.Tip == nil {
-		return
-	}
-	nowBlockBytes, _ := bc.Db.Get(bc.Tip)
-	nowBlock := block.Deserialize(nowBlockBytes)
-	newBlock := block.NewBlock(nowBlock.Height+1, txs, nowBlock.Hash)
-	bc.AddBlockToBlockChan(newBlock)
-}
-
-func (c *Cli) printChain() {
-	bc := block.BlockChainObject()
-	bc.PrintChain()
-	defer bc.Db.Close()
-}
-
-func (c *Cli) getBalance(address string) {
-	bc := block.BlockChainObject()
-	defer bc.Db.Close()
-	amount := bc.GetBalance(address)
-	fmt.Printf("%s balance: %d", address, amount)
 }
 
 func (c *Cli) Run() {

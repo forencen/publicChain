@@ -111,7 +111,7 @@ func (bc *BlockChain) GetUnUseUtxo(address string) []*transaction.Utxo {
 		}
 
 	}
-	utxoList := make([]*transaction.Utxo, len(utxoMapping), len(utxoMapping))
+	utxoList := make([]*transaction.Utxo, 0, len(utxoMapping))
 	for _, value := range utxoMapping {
 		utxoList = append(utxoList, value)
 	}
@@ -122,13 +122,15 @@ func (bc *BlockChain) GetBalance(address string) int64 {
 	utxos := bc.GetUnUseUtxo(address)
 	var sumAmount int64
 	for _, utxo := range utxos {
-		sumAmount += utxo.Value
+		if !utxo.IsUsed {
+			sumAmount += utxo.Value
+		}
 	}
 	return sumAmount
 }
 
 // MineNewBlock 挖掘新的区块
-func (bc *BlockChain) MineNewBlock(from []string, to []string, amount []string) {
+func (bc *BlockChain) MineNewBlock(from string, to string, amount string) {
 	var txs []*transaction.Transaction
 	// todo  完成交易对的创建
 	lastBlock := bc.LastBlock()

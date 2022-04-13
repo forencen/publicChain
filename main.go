@@ -1,8 +1,6 @@
 package main
 
-import (
-	"publicChain/cli"
-)
+import "publicChain/cli"
 
 func main() {
 	c := &cli.Cli{}
