@@ -179,16 +179,14 @@ func (bc *BlockChain) NewSimpleTransaction(from string, to string, amount string
 
 // MineNewBlock 挖掘新的区块
 // 多对多的转账情况还未实现
-func (bc *BlockChain) MineNewBlock(from []string, to []string, amount []string) {
+func (bc *BlockChain) MineNewBlock(from string, to string, amount string) {
 	var txs []*transaction.Transaction
 	if !(len(from) == len(to) && len(to) == len(amount)) {
 		return
 	}
-	for index := range from {
-		tempTx := bc.NewSimpleTransaction(from[index], to[index], amount[index])
-		if tempTx != nil {
-			txs = append(txs, tempTx)
-		}
+	tempTx := bc.NewSimpleTransaction(from, to, amount)
+	if tempTx != nil {
+		txs = append(txs, tempTx)
 	}
 	lastBlock := bc.LastBlock()
 	block := NewBlock(lastBlock.Height+1, txs, lastBlock.Hash)

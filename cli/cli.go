@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"publicChain/utils"
 )
 
 type Cli struct {
@@ -16,7 +15,6 @@ func (c *Cli) printUsage() {
 }
 
 func (c *Cli) Run() {
-
 	printChainCmd := flag.NewFlagSet("printChain", flag.ExitOnError)
 
 	createBlockChainCmd := flag.NewFlagSet("createBlockChainCmd", flag.ExitOnError)
@@ -33,11 +31,18 @@ func (c *Cli) Run() {
 	getBalanceCmd := flag.NewFlagSet("getBalance", flag.ExitOnError)
 	balanceAddress := getBalanceCmd.String("address", "xxxxxx", "查询地址")
 
+	createWallet := flag.NewFlagSet("createWallet", flag.ExitOnError)
+
 	if len(os.Args) <= 1 {
 		c.printUsage()
 		return
 	}
 	switch os.Args[1] {
+	case "createWallet":
+		err := createWallet.Parse(os.Args[2:])
+		if err != nil {
+			log.Panic(err)
+		}
 	case "addBlock":
 		err := addBlockCmd.Parse(os.Args[2:])
 		if err != nil {
@@ -65,6 +70,9 @@ func (c *Cli) Run() {
 		c.printUsage()
 		os.Exit(1)
 	}
+	if createWallet.Parsed() {
+		c.createWallet()
+	}
 	if addBlockCmd.Parsed() {
 		fmt.Println(*flagAddBlockData)
 		c.addBlock(nil)
@@ -79,7 +87,8 @@ func (c *Cli) Run() {
 		//fmt.Println(utils.Json2StrArray(*flagFrom))
 		//fmt.Println(utils.Json2StrArray(*flagTo))
 		//fmt.Println(utils.Json2StrArray(*flagAmount))
-		c.send(utils.Json2StrArray(*flagFrom), utils.Json2StrArray(*flagTo), utils.Json2StrArray(*flagAmount))
+		//c.send(utils.Json2StrArray(*flagFrom), utils.Json2StrArray(*flagTo), utils.Json2StrArray(*flagAmount))
+		c.send(*flagFrom, *flagTo, *flagAmount)
 	}
 	if getBalanceCmd.Parsed() {
 		c.getBalance(*balanceAddress)

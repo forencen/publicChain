@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -51,4 +52,13 @@ func HashPubKey(pubKey []byte) []byte {
 	RIPEMD160Hasher.Write(publicSHA256[:])
 	publicRIPEMD160 := RIPEMD160Hasher.Sum(nil)
 	return publicRIPEMD160
+}
+
+// ValidateAddress 校验地址是否合法
+// 用base58解码地址，拿出原始公钥，配合version 做校验和，和输入地址的后四位做比较
+func ValidateAddress(address string) bool {
+	pubKeyHash := Base58Decode([]byte(address))
+	inputCheckSum := pubKeyHash[len(pubKeyHash)-addressChecksumLen:]
+	targetChecksum := checksum(pubKeyHash[:len(pubKeyHash)-addressChecksumLen])
+	return bytes.Compare(inputCheckSum, targetChecksum) == 0
 }
