@@ -1,10 +1,12 @@
 package block
 
 import (
+	"log"
 	"math/big"
 	"publicChain/db"
 	"publicChain/pow"
 	"publicChain/transaction"
+	"publicChain/wallet"
 	"strconv"
 )
 
@@ -118,7 +120,9 @@ func (bc *BlockChain) GetBalance(address string) int64 {
 	return sumAmount
 }
 
-func (bc *BlockChain) FindAddressEnoughUtxos(address string, amount int64) ([]*transaction.Utxo, bool) {
+// FindAddressEnoughUtxos 找到指定地址为没有话费的UTXO。
+// 返回UTXO和金额是否足够支付
+func (bc *BlockChain) FindAddressEnoughUtxos(address []byte, amount int64) ([]*transaction.Utxo, bool) {
 	iterator := bc.Iterator()
 	var block *Block
 	var usedKeySet = make(map[string]struct{})
@@ -156,9 +160,18 @@ enough:
 	return utxoList, nowAmount >= amount
 }
 func (bc *BlockChain) NewSimpleTransaction(from string, to string, amount string) *transaction.Transaction {
+	ws, err := wallet.NewWallets()
+	if err != nil {
+		log.Panic("init wallets error")
+		return nil
+	}
+	myWallet := ws.GetWallet(from)
 	needAmount, _ := strconv.ParseInt(amount, 10, 64)
-	needUtxos, isEnough := bc.FindAddressEnoughUtxos(from, needAmount)
+	myPubKeyHash := wallet.HashPubKey(myWallet.PublicKey)
+	needUtxos, isEnough := bc.FindAddressEnoughUtxos(myPubKeyHash, needAmount)
+
 	if !isEnough {
+		log.Panic("not enough money")
 		return nil
 	}
 	var vins []*transaction.TxInput

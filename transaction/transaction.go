@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+const subsidy = 10
+
 type Transaction struct {
 	Hash  []byte
 	Vins  []*TxInput
@@ -45,9 +47,9 @@ func (t *Transaction) String() string {
 	return sBuilder.String()
 }
 
-func NewCoinbaseTransaction(address string) *Transaction {
-	txInput := &TxInput{[]byte{}, -1, "genesis data"}
-	txOutput := &TxOutput{10, address}
+func NewCoinbaseTransaction(address []byte) *Transaction {
+	txInput := &TxInput{[]byte{}, -1, nil, []byte("genesis coinbase")}
+	txOutput := &TxOutput{subsidy, address}
 	coinbase := &Transaction{[]byte{}, []*TxInput{txInput}, []*TxOutput{txOutput}}
 	coinbase.SetTxHash()
 	return coinbase

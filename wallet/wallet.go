@@ -30,14 +30,25 @@ func newKeyPair() (ecdsa.PrivateKey, []byte) {
 	return *private, pubKey
 }
 
-// GetAddress 公钥获取流程：
-// base58(version + ripemd160(sha256(PublicKey)) + sha256(sha256(ripemd160(sha256(PublicKey)))))
-func (w *Wallet) GetAddress() []byte {
-	pubKeyHash := HashPubKey(w.PublicKey)
+func TransformPublicKey(pubKey []byte) []byte {
+	pubKeyHash := HashPubKey(pubKey)
 	versionedPayload := append([]byte{version}, pubKeyHash...)
 	checkSum := checksum(versionedPayload)
 	fullPayload := append(versionedPayload, checkSum...)
 	return Base58Encode(fullPayload)
+}
+
+func TransformPublicKeyHash(pubKeyHash []byte) []byte {
+	versionedPayload := append([]byte{version}, pubKeyHash...)
+	checkSum := checksum(versionedPayload)
+	fullPayload := append(versionedPayload, checkSum...)
+	return Base58Encode(fullPayload)
+}
+
+// GetAddress 公钥获取流程：
+// base58(version + ripemd160(sha256(PublicKey)) + sha256(sha256(ripemd160(sha256(PublicKey)))))
+func (w *Wallet) GetAddress() []byte {
+	return TransformPublicKey(w.PublicKey)
 }
 
 func checksum(payload []byte) []byte {

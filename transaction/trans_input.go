@@ -1,21 +1,24 @@
 package transaction
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+	"publicChain/wallet"
+)
 
 type TxInput struct {
 	TxHash    []byte
 	Vout      int
-	ScriptSig string
+	Signature []byte
+	PubKey    []byte
 }
 
-func NewTxInputFromUtxo(utxo *Utxo) *TxInput {
-	return &TxInput{utxo.TxHash, utxo.Vout, utxo.ScriptSig}
-}
-
-func (vin *TxInput) UnLockWithAddress(address string) bool {
-	return vin.ScriptSig == address
+// UnLockWithAddress  wallet 中的公钥
+func (vin *TxInput) UnLockWithAddress(pubKeyHash []byte) bool {
+	lockingHash := wallet.HashPubKey(vin.PubKey)
+	return bytes.Compare(lockingHash, pubKeyHash) == 0
 }
 
 func (vin *TxInput) String() string {
-	return fmt.Sprintf("%x: %d, %s", vin.TxHash, vin.Vout, vin.ScriptSig)
+	return fmt.Sprintf("%x: %d, %s", vin.TxHash, vin.Vout, wallet.TransformPublicKey(vin.PubKey))
 }
