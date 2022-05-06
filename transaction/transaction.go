@@ -6,10 +6,11 @@ import (
 	"encoding/gob"
 	"fmt"
 	"log"
+	"publicChain/wallet"
 	"strings"
 )
 
-const subsidy = 10
+const Subsidy = 10
 
 type Transaction struct {
 	Hash  []byte
@@ -47,9 +48,9 @@ func (t *Transaction) String() string {
 	return sBuilder.String()
 }
 
-func NewCoinbaseTransaction(address []byte) *Transaction {
+func NewCoinbaseTransaction(address string) *Transaction {
 	txInput := &TxInput{[]byte{}, -1, nil, []byte("genesis coinbase")}
-	txOutput := &TxOutput{subsidy, address}
+	txOutput := &TxOutput{Subsidy, wallet.GetAddressPubKeyHash(address)}
 	coinbase := &Transaction{[]byte{}, []*TxInput{txInput}, []*TxOutput{txOutput}}
 	coinbase.SetTxHash()
 	return coinbase

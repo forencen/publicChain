@@ -1,6 +1,7 @@
 package block
 
 import (
+	"encoding/hex"
 	"log"
 	"math/big"
 	"publicChain/db"
@@ -80,10 +81,19 @@ func (bc *BlockChain) PrintChain() {
 
 // GetUnUseUtxo 获取地址所有的UTXO
 func (bc *BlockChain) GetUnUseUtxo(address string) []*transaction.Utxo {
+	ws, err := wallet.NewWallets()
+	if err != nil {
+		log.Panicf("%s is error", address)
+		return nil
+	}
+	myWallet := ws.GetWallet(address)
+	myPubKeyHash := wallet.HashPubKey(myWallet.PublicKey)
 	iterator := bc.Iterator()
-	var block *Block
-	var usedKeySet = make(map[string]struct{})
-	utxoList := make([]*transaction.Utxo, 0, 10)
+	var (
+		block    *Block
+		utxoList []*transaction.Utxo
+	)
+	usedKeySet := make(map[string]struct{})
 	for {
 		block = iterator.Next()
 		if block == nil {
@@ -91,18 +101,19 @@ func (bc *BlockChain) GetUnUseUtxo(address string) []*transaction.Utxo {
 		}
 		for i := len(block.Txs) - 1; i >= 0; i-- {
 			for _, vin := range block.Txs[i].Vins {
-				if vin.UnLockWithAddress(address) {
-					usedKeySet[string(vin.TxHash)+strconv.Itoa(vin.Vout)] = struct{}{}
+				if vin.UnLockWithAddress(myPubKeyHash) {
+					usedKeySet[hex.EncodeToString(vin.TxHash)+strconv.Itoa(vin.Vout)] = struct{}{}
 				}
 			}
 
 			for index, vout := range block.Txs[i].Vouts {
-				if vout.UnLockWithAddress(address) {
-					k := string(block.Txs[i].Hash) + strconv.Itoa(index)
+				if vout.UnLockWithAddress(myPubKeyHash) {
+					k := hex.EncodeToString(block.Txs[i].Hash) + strconv.Itoa(index)
 					if _, ok := usedKeySet[k]; ok {
 						continue
 					}
-					utxoList = append(utxoList, transaction.NewUtxo(block.Txs[i].Hash, i, vout.Value, address))
+					utxoList = append(utxoList,
+						transaction.NewUtxo(block.Txs[i].Hash, i, vout.Value, myWallet.PublicKey))
 				}
 			}
 		}
@@ -122,7 +133,8 @@ func (bc *BlockChain) GetBalance(address string) int64 {
 
 // FindAddressEnoughUtxos 找到指定地址为没有话费的UTXO。
 // 返回UTXO和金额是否足够支付
-func (bc *BlockChain) FindAddressEnoughUtxos(address []byte, amount int64) ([]*transaction.Utxo, bool) {
+func (bc *BlockChain) FindAddressEnoughUtxos(addressPublicKey []byte, amount int64) ([]*transaction.Utxo, bool) {
+	address := wallet.HashPubKey(addressPublicKey)
 	iterator := bc.Iterator()
 	var block *Block
 	var usedKeySet = make(map[string]struct{})
@@ -137,17 +149,18 @@ enough:
 		for i := len(block.Txs) - 1; i >= 0; i-- {
 			for _, vin := range block.Txs[i].Vins {
 				if vin.UnLockWithAddress(address) {
-					usedKeySet[string(vin.TxHash)+strconv.Itoa(vin.Vout)] = struct{}{}
+					usedKeySet[hex.EncodeToString(vin.TxHash)+strconv.Itoa(vin.Vout)] = struct{}{}
 				}
 			}
 
 			for index, vout := range block.Txs[i].Vouts {
 				if vout.UnLockWithAddress(address) {
-					k := string(block.Txs[i].Hash) + strconv.Itoa(index)
+					k := hex.EncodeToString(block.Txs[i].Hash) + strconv.Itoa(index)
 					if _, ok := usedKeySet[k]; ok {
 						continue
 					}
-					utxoList = append(utxoList, transaction.NewUtxo(block.Txs[i].Hash, i, vout.Value, address))
+					utxoList = append(utxoList,
+						transaction.NewUtxo(block.Txs[i].Hash, i, vout.Value, addressPublicKey))
 					nowAmount += vout.Value
 					if nowAmount >= amount {
 						break enough
@@ -166,9 +179,9 @@ func (bc *BlockChain) NewSimpleTransaction(from string, to string, amount string
 		return nil
 	}
 	myWallet := ws.GetWallet(from)
-	needAmount, _ := strconv.ParseInt(amount, 10, 64)
-	myPubKeyHash := wallet.HashPubKey(myWallet.PublicKey)
-	needUtxos, isEnough := bc.FindAddressEnoughUtxos(myPubKeyHash, needAmount)
+	needAmount, _ := strconv.ParseInt(amount, transaction.Subsidy, 64)
+
+	needUtxos, isEnough := bc.FindAddressEnoughUtxos(myWallet.PublicKey, needAmount)
 
 	if !isEnough {
 		log.Panic("not enough money")
@@ -178,7 +191,8 @@ func (bc *BlockChain) NewSimpleTransaction(from string, to string, amount string
 	var canUseAmount int64
 	for _, utxo := range needUtxos {
 		canUseAmount += utxo.Value
-		vins = append(vins, &transaction.TxInput{TxHash: utxo.TxHash, Vout: utxo.Vout, ScriptSig: utxo.ScriptSig})
+		vins = append(vins, &transaction.TxInput{TxHash: utxo.TxHash,
+			Vout: utxo.Vout, Signature: nil, PubKey: utxo.PubKey})
 	}
 	var vouts []*transaction.TxOutput
 	vouts = append(vouts, &transaction.TxOutput{ScriptSig: to, Value: needAmount})

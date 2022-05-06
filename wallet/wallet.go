@@ -38,6 +38,12 @@ func TransformPublicKey(pubKey []byte) []byte {
 	return Base58Encode(fullPayload)
 }
 
+// GetAddressPubKeyHash 更具string的地址获取地址的 哈希过的的公钥
+func GetAddressPubKeyHash(address string) []byte {
+	fullPayload := Base58Decode([]byte(address))
+	return fullPayload[1 : len(fullPayload)-4]
+}
+
 func TransformPublicKeyHash(pubKeyHash []byte) []byte {
 	versionedPayload := append([]byte{version}, pubKeyHash...)
 	checkSum := checksum(versionedPayload)

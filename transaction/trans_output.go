@@ -11,10 +11,8 @@ type TxOutput struct {
 	PubKeyHash []byte
 }
 
-func (vout *TxOutput) Lock(address []byte) {
-	pubKeyHash := wallet.Base58Decode(address)
-	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-4]
-	vout.PubKeyHash = pubKeyHash
+func (vout *TxOutput) Lock(address string) {
+	vout.PubKeyHash = wallet.GetAddressPubKeyHash(address)
 }
 
 func (vout *TxOutput) UnLockWithAddress(pubKeyHash []byte) bool {
