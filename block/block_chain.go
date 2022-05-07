@@ -1,7 +1,9 @@
 package block
 
 import (
+	"bytes"
 	"encoding/hex"
+	"errors"
 	"log"
 	"math/big"
 	"publicChain/db"
@@ -131,6 +133,28 @@ func (bc *BlockChain) GetBalance(address string) int64 {
 	return sumAmount
 }
 
+// GetTransaction 根据交易hash查询处这条交易的所有信息
+func (bc *BlockChain) GetTransaction(ID []byte) (*transaction.Transaction, error) {
+	iterator := bc.Iterator()
+	var block *Block
+	for {
+		block = iterator.Next()
+		if block == nil {
+			break
+		}
+		for _, tx := range block.Txs {
+			if bytes.Compare(tx.Hash, ID) == 0 {
+				return tx, nil
+			}
+		}
+
+		if len(block.PrevBlockHash) == 0 {
+			break
+		}
+	}
+	return nil, errors.New("transaction is not found")
+}
+
 // FindAddressEnoughUtxos 找到指定地址为没有话费的UTXO。
 // 返回UTXO和金额是否足够支付
 func (bc *BlockChain) FindAddressEnoughUtxos(addressPublicKey []byte, amount int64) ([]*transaction.Utxo, bool) {
@@ -195,9 +219,11 @@ func (bc *BlockChain) NewSimpleTransaction(from string, to string, amount string
 			Vout: utxo.Vout, Signature: nil, PubKey: utxo.PubKey})
 	}
 	var vouts []*transaction.TxOutput
-	vouts = append(vouts, &transaction.TxOutput{ScriptSig: to, Value: needAmount})
+	vouts = append(vouts, &transaction.TxOutput{PubKeyHash: wallet.GetAddressPubKeyHash(to),
+		Value: needAmount})
 	if canUseAmount > needAmount {
-		vouts = append(vouts, &transaction.TxOutput{ScriptSig: from, Value: canUseAmount - needAmount})
+		vouts = append(vouts, &transaction.TxOutput{PubKeyHash: wallet.GetAddressPubKeyHash(from),
+			Value: canUseAmount - needAmount})
 	}
 	tran := &transaction.Transaction{Vins: vins, Vouts: vouts}
 	tran.SetTxHash()

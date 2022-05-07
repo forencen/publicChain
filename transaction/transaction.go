@@ -33,6 +33,10 @@ func (t *Transaction) SetTxHash() {
 	t.Hash = hash[:]
 }
 
+func (t *Transaction) TrimmedCopy() {
+
+}
+
 func (t *Transaction) String() string {
 	var sBuilder strings.Builder
 	sBuilder.WriteString("交易hash:")
