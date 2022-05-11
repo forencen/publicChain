@@ -2,8 +2,11 @@ package transaction
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/gob"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"publicChain/wallet"
@@ -33,8 +36,41 @@ func (t *Transaction) SetTxHash() {
 	t.Hash = hash[:]
 }
 
-func (t *Transaction) TrimmedCopy() {
+func (t *Transaction) Sign(privateKey ecdsa.PrivateKey, prevTxs map[string]Transaction) {
+	if t.IsCoinbase() {
+		return
+	}
+	txTrimmed := t.TrimmedCopy()
+	for vinId, vin := range txTrimmed.Vins {
+		prevTx := prevTxs[hex.EncodeToString(vin.TxHash)]
+		txTrimmed.Vins[vinId].Signature = nil
+		txTrimmed.Vins[vinId].PubKey = prevTx.Vouts[vin.Vout].PubKeyHash
+		txTrimmed.SetTxHash()
+		txTrimmed.Vins[vinId].PubKey = nil
 
+		r, s, _ := ecdsa.Sign(rand.Reader, &privateKey, txTrimmed.Hash)
+		signature := append(r.Bytes(), s.Bytes()...)
+
+		t.Vins[vinId].Signature = signature
+	}
+}
+
+func (t *Transaction) TrimmedCopy() Transaction {
+	var (
+		inputs  []*TxInput
+		outputs []*TxOutput
+	)
+	for _, input := range t.Vins {
+		inputs = append(inputs, &TxInput{input.TxHash, input.Vout, nil, nil})
+	}
+	for _, output := range t.Vouts {
+		outputs = append(outputs, &TxOutput{output.Value, output.PubKeyHash})
+	}
+	return Transaction{t.Hash, inputs, outputs}
+}
+
+func (t *Transaction) IsCoinbase() bool {
+	return len(t.Vins) == 1 && len(t.Vins[0].TxHash) == 0 && t.Vins[0].Vout == -1
 }
 
 func (t *Transaction) String() string {
