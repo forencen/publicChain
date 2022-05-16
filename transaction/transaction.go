@@ -3,12 +3,14 @@ package transaction
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/gob"
 	"encoding/hex"
 	"fmt"
 	"log"
+	"math/big"
 	"publicChain/wallet"
 	"strings"
 )
@@ -67,6 +69,38 @@ func (t *Transaction) TrimmedCopy() Transaction {
 		outputs = append(outputs, &TxOutput{output.Value, output.PubKeyHash})
 	}
 	return Transaction{t.Hash, inputs, outputs}
+}
+
+func (t *Transaction) Verify(prevTXs map[string]Transaction) bool {
+	txCopy := t.TrimmedCopy()
+	curve := elliptic.P256()
+
+	for inID, vin := range t.Vins {
+		prevTx := prevTXs[hex.EncodeToString(vin.TxHash)]
+		txCopy.Vins[inID].Signature = nil
+		txCopy.Vins[inID].PubKey = prevTx.Vouts[vin.Vout].PubKeyHash
+		txCopy.SetTxHash()
+		txCopy.Vins[inID].PubKey = nil
+
+		r := big.Int{}
+		s := big.Int{}
+		sigLen := len(vin.Signature)
+		r.SetBytes(vin.Signature[:(sigLen / 2)])
+		s.SetBytes(vin.Signature[(sigLen / 2):])
+
+		x := big.Int{}
+		y := big.Int{}
+		keyLen := len(vin.PubKey)
+		x.SetBytes(vin.PubKey[:(keyLen / 2)])
+		y.SetBytes(vin.PubKey[(keyLen / 2):])
+
+		rawPubKey := ecdsa.PublicKey{Curve: curve, X: &x, Y: &y}
+		if ecdsa.Verify(&rawPubKey, txCopy.Hash, &r, &s) == false {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (t *Transaction) IsCoinbase() bool {
